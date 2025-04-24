@@ -60,6 +60,7 @@ java_library {
         "com.android.adservices",
         "com.android.tethering",
         "com.android.uwb",
+        "com.android.mediaprovider",
     ],
     target: {
         windows: {
