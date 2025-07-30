@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -130,6 +131,7 @@ class BuilderSpec {
   class Builder implements AutoValueExtension.BuilderContext {
     private final TypeElement builderTypeElement;
     private ImmutableSet<ExecutableElement> toBuilderMethods;
+    private ImmutableSet<ExecutableElement> builderAbstractMethods;
     private ExecutableElement buildMethod;
     private BuilderMethodClassifier<?> classifier;
 
@@ -205,6 +207,13 @@ class BuilderSpec {
       return toBuilderMethods;
     }
 
+    ImmutableSet<ExecutableElement> builderAbstractMethods() {
+      if (builderAbstractMethods == null) {
+        builderAbstractMethods = abstractMethods(builderTypeElement, processingEnv);
+      }
+      return builderAbstractMethods;
+    }
+
     /**
      * Finds any methods in the set that return the builder type. If the builder has type parameters
      * {@code <A, B>}, then the return type of the method must be {@code Builder<A, B>} with the
@@ -271,18 +280,19 @@ class BuilderSpec {
     void defineVarsForAutoValue(
         AutoValueOrBuilderTemplateVars vars,
         ImmutableBiMap<ExecutableElement, String> getterToPropertyName,
-        Nullables nullables) {
+        Nullables nullables,
+        ImmutableSet<ExecutableElement> consumedBuilderAbstractMethods) {
       Iterable<ExecutableElement> builderMethods =
-          abstractMethods(builderTypeElement, processingEnv);
+          Sets.difference(builderAbstractMethods, consumedBuilderAbstractMethods);
       boolean autoValueHasToBuilder = toBuilderMethods != null && !toBuilderMethods.isEmpty();
-      ImmutableMap<ExecutableElement, TypeMirror> getterToPropertyType =
+      ImmutableMap<ExecutableElement, AnnotatedTypeMirror> getterToPropertyType =
           TypeVariables.rewriteReturnTypes(
-              processingEnv.getElementUtils(),
               processingEnv.getTypeUtils(),
               getterToPropertyName.keySet(),
               autoValueClass,
               builderTypeElement);
-      ImmutableMap.Builder<String, TypeMirror> rewrittenPropertyTypes = ImmutableMap.builder();
+      ImmutableMap.Builder<String, AnnotatedTypeMirror> rewrittenPropertyTypes =
+          ImmutableMap.builder();
       getterToPropertyType.forEach(
           (getter, type) -> rewrittenPropertyTypes.put(getterToPropertyName.get(getter), type));
       Optional<BuilderMethodClassifier<ExecutableElement>> optionalClassifier =

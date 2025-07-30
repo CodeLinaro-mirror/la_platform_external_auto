@@ -32,17 +32,12 @@
   <version>HEAD-SNAPSHOT</version>
   <name>Auto-Value Functional Integration Test</name>
   <properties>
-    <kotlin.version>1.9.10</kotlin.version>
+    <kotlin.version>2.0.0</kotlin.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value-annotations</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -62,7 +57,7 @@
     <dependency>
       <groupId>org.gwtproject</groupId>
       <artifactId>gwt-user</artifactId>
-      <version>2.10.0</version>
+      <version>2.11.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -92,7 +87,7 @@
     <dependency>
       <groupId>dev.gradleplugins</groupId>
       <artifactId>gradle-test-kit</artifactId>
-      <version>8.3</version>
+      <version>8.6</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -112,7 +107,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.4.1</version>
       </plugin>
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
@@ -149,15 +144,27 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.13.0</version>
         <dependencies>
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-java</artifactId>
-            <version>1.1.2</version>
+            <version>1.2.0</version>
           </dependency>
         </dependencies>
         <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.auto.value</groupId>
+              <artifactId>auto-value</artifactId>
+              <version>${project.version}</version>
+            </path>
+            <path>
+              <groupId>org.jetbrains.kotlin</groupId>
+              <artifactId>kotlin-metadata-jvm</artifactId>
+              <version>2.0.0</version>
+            </path>
+          </annotationProcessorPaths>
           <source>${java.specification.version}</source>
           <target>${java.specification.version}</target>
           <compilerArgs>
@@ -173,7 +180,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.1.1</version>
+        <version>3.1.2</version>
         <configuration>
           <!-- Build/test, but don't deploy -->
           <skip>true</skip>
@@ -182,12 +189,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.5</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.5</version>
         <configuration>
           <systemPropertyVariables>
             <autoValueVersion>${project.version}</autoValueVersion>
@@ -202,7 +209,7 @@
             </goals>
           </execution>
         </executions>
-     </plugin>
+      </plugin>
     </plugins>
   </build>
 
@@ -214,15 +221,27 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version>
+            <version>3.13.0</version>
             <dependencies>
               <dependency>
                 <groupId>org.codehaus.plexus</groupId>
                 <artifactId>plexus-java</artifactId>
-                <version>1.1.2</version>
+                <version>1.2.0</version>
               </dependency>
             </dependencies>
             <configuration>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.auto.value</groupId>
+                  <artifactId>auto-value</artifactId>
+                  <version>${project.version}</version>
+                </path>
+                <path>
+                  <groupId>org.jetbrains.kotlin</groupId>
+                  <artifactId>kotlin-metadata-jvm</artifactId>
+                  <version>2.0.0</version>
+                </path>
+              </annotationProcessorPaths>
               <source>${java.specification.version}</source>
               <target>${java.specification.version}</target>
               <compilerArgs>
@@ -249,7 +268,7 @@
         <dependency>
           <groupId>org.eclipse.jdt</groupId>
           <artifactId>ecj</artifactId>
-          <version>3.34.0</version>
+          <version>3.37.0</version>
           <scope>test</scope>
         </dependency>
       </dependencies>
@@ -267,25 +286,6 @@
             <configuration>
               <testExcludes>
                 <exclude>**/CompileWithEclipseTest.java</exclude>
-              </testExcludes>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>exclude-java8-tests</id>
-      <activation>
-        <jdk>(,1.7]</jdk>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <configuration>
-              <testExcludes>
-                <exclude>**/AutoValueJava8Test.java</exclude>
               </testExcludes>
             </configuration>
           </plugin>
