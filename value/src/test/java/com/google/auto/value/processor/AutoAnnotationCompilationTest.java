@@ -15,7 +15,7 @@
  */
 package com.google.auto.value.processor;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
 
@@ -243,7 +243,7 @@ public class AutoAnnotationCompilationTest {
             "package com.example.factories;",
             "",
             "import com.example.annotations.MyAnnotation;",
-            "import java.io.Serializable",
+            "import java.io.Serializable;",
             "import java.util.Arrays;",
             GeneratedImport.importGeneratedAnnotationType(),
             "",
@@ -376,7 +376,7 @@ public class AutoAnnotationCompilationTest {
             "    if (enums == null) {",
             "      throw new NullPointerException(\"Null enums\");",
             "    }",
-            "    this.enums = enums.toArray(new MyEnum[0];",
+            "    this.enums = enums.toArray(new MyEnum[0]);",
             "  }",
             "",
             "  @Override public Class<? extends MyAnnotation> annotationType() {",
@@ -414,7 +414,7 @@ public class AutoAnnotationCompilationTest {
             "          && Arrays.equals(enums,",
             "          (that instanceof AutoAnnotation_AnnotationFactory_newMyAnnotation)",
             "              ? ((AutoAnnotation_AnnotationFactory_newMyAnnotation) that).enums",
-            "              : that.enums())",
+            "              : that.enums());",
             "    }",
             "    return false;",
             "  }",
