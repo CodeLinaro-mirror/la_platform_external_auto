@@ -23,7 +23,7 @@
   <version>HEAD-SNAPSHOT</version>
   <name>AutoValue Parent</name>
   <description>
-    Immutable value-type code generation for Java 7+.
+    Immutable value-type code generation for Java 8+.
   </description>
   <packaging>pom</packaging>
   <url>https://github.com/google/auto/tree/main/value</url>
@@ -31,8 +31,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.8</java.version>
-    <guava.version>32.1.2-jre</guava.version>
-    <truth.version>1.1.5</truth.version>
+    <guava.version>33.2.0-jre</guava.version>
+    <truth.version>1.4.2</truth.version>
   </properties>
 
   <scm>
@@ -155,7 +155,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.11.0</version>
+          <version>3.13.0</version>
           <configuration>
             <source>${java.version}</source>
             <target>${java.version}</target>
@@ -167,19 +167,19 @@
             <dependency>
               <groupId>org.codehaus.plexus</groupId>
               <artifactId>plexus-java</artifactId>
-              <version>1.1.2</version>
+              <version>1.2.0</version>
             </dependency>
           </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>3.4.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-invoker-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.7.0</version>
           <configuration>
             <addTestClassPath>true</addTestClassPath>
             <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
@@ -215,7 +215,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.3.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -228,7 +228,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.5.0</version>
+            <version>3.6.3</version>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
@@ -244,7 +244,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.4</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
