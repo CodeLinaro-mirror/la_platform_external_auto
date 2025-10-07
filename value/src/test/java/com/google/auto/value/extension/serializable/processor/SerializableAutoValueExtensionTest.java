@@ -16,7 +16,6 @@
 package com.google.auto.value.extension.serializable.processor;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.auto.value.AutoValue;

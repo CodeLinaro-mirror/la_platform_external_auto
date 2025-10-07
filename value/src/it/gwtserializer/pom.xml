@@ -36,7 +36,7 @@
       <dependency>
         <groupId>org.gwtproject</groupId>
         <artifactId>gwt</artifactId>
-        <version>2.10.0</version>
+        <version>2.11.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -94,12 +94,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.13.0</version>
         <dependencies>
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-java</artifactId>
-            <version>1.1.2</version>
+            <version>1.2.0</version>
           </dependency>
         </dependencies>
         <configuration>
@@ -132,7 +132,7 @@
       <plugin>
         <groupId>net.ltgt.gwt.maven</groupId>
         <artifactId>gwt-maven-plugin</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
         <executions>
           <execution>
             <goals>
@@ -144,7 +144,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.1.1</version>
+        <version>3.1.2</version>
         <configuration>
           <!-- Build/test, but don't deploy -->
           <skip>true</skip>
@@ -160,7 +160,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.4.1</version>
         <executions>
           <execution>
             <id>default-jar</id>

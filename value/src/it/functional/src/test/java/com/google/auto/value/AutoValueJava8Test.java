@@ -16,17 +16,20 @@
 package com.google.auto.value;
 
 import static com.google.common.base.StandardSystemProperty.JAVA_SPECIFICATION_VERSION;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 import static com.google.testing.compile.CompilationSubject.assertThat;
+import static java.util.Arrays.stream;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.testing.EqualsTester;
+import com.google.common.truth.Truth;
 import com.google.testing.compile.Compilation;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
@@ -36,8 +39,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
@@ -47,6 +52,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -70,7 +76,10 @@ import org.junit.runners.JUnit4;
  * @author emcmanus@google.com (Éamonn McManus)
  */
 @RunWith(JUnit4.class)
+@SuppressWarnings({"SameNameButDifferent", "NullableTypeParameter", "TruthSelfEquals"})
+// We are deliberately doing some shady stuff to test edge cases.
 public class AutoValueJava8Test {
+  @SuppressWarnings("NonFinalStaticField") // b/314784069
   private static boolean javacHandlesTypeAnnotationsCorrectly;
 
   // This is appalling. Some versions of javac do not correctly report annotations on type uses in
@@ -169,16 +178,42 @@ public class AutoValueJava8Test {
     // Some versions do, some don't. So skip the test unless we are on at least JDK 9.
     double javaVersion = Double.parseDouble(JAVA_SPECIFICATION_VERSION.value());
     assume().that(javaVersion).isAtLeast(9.0);
-    Method equals =
-        NullableProperties.create(null, 23).getClass().getMethod("equals", Object.class);
-    AnnotatedType[] parameterTypes = equals.getAnnotatedParameterTypes();
-    assertThat(parameterTypes).hasLength(1);
-    assertThat(parameterTypes[0].getAnnotation(Nullable.class)).isNotNull();
+    NullableProperties nullableProperties = NullableProperties.create(null, 23);
+    Method equals = nullableProperties.getClass().getMethod("equals", Object.class);
+    // If `java.lang.Object.equals` is itself annotated, for example with the JSpecify `@Nullable`,
+    // then we will copy that annotation onto the parameter of the generated `equals`
+    // implementation. Otherwise we will copy the `@Nullable` from the return type of the
+    // `nullableString()` method. So we accept either @Nullable here.
+    // (You might think we could just reflect on Object.equals to see if it has @Nullable, but in
+    // some environments we have nullness annotations at compile time but not at run time.)
+    assertThat(equals.getAnnotatedParameterTypes()[0].getAnnotations())
+        .asList()
+        .containsAnyIn(nullables(nullableProperties.getClass()));
   }
 
   @AutoAnnotation
   static Nullable nullable() {
     return new AutoAnnotation_AutoValueJava8Test_nullable();
+  }
+
+  /**
+   * Returns a set containing this test's {@link Nullable @Nullable} annotation, plus possibly
+   * another {@code @Nullable} that is present on the parameter of {@link Object#equals}.
+   */
+  static ImmutableSet<Annotation> nullables(Class<?> autoValueImplClass) {
+    try {
+      return Stream.concat(
+              Stream.of(nullable()),
+              stream(
+                      autoValueImplClass
+                          .getMethod("equals", Object.class)
+                          .getAnnotatedParameterTypes()[0]
+                          .getAnnotations())
+                  .filter(a -> a.annotationType().getSimpleName().equals("Nullable")))
+          .collect(toImmutableSet());
+    } catch (ReflectiveOperationException e) {
+      throw new LinkageError(e.getMessage(), e);
+    }
   }
 
   @Test
@@ -273,6 +308,71 @@ public class AutoValueJava8Test {
         .addEqualityGroup(somethingNull)
         .addEqualityGroup(nothingNull, nothingNullAgain)
         .testEquals();
+  }
+
+  interface GenericGrandparent<T> {
+    T thing();
+  }
+
+  interface GenericParent<T> extends GenericGrandparent<T> {
+    @Override
+    @Nullable T thing();
+  }
+
+  @AutoValue
+  abstract static class StringThing implements GenericParent<String> {
+  }
+
+  @AutoValue
+  abstract static class StringThingWithBuilder implements GenericParent<String> {
+    static Builder builder() {
+      return new AutoValue_AutoValueJava8Test_StringThingWithBuilder.Builder();
+    }
+
+    @AutoValue.Builder
+    interface Builder {
+      Builder setThing(String thing);
+      @Nullable String thing();
+      StringThingWithBuilder build();
+    }
+  }
+
+  @Test
+  public void testInheritedGetterRemainsNullable() throws NoSuchMethodException {
+    // Ensure that the implementation has `@Nullable String thing()`.
+    StringThing instance = new AutoValue_AutoValueJava8Test_StringThing(null);
+    Method getter = instance.getClass().getDeclaredMethod("thing");
+    assertThat(getter.getAnnotatedReturnType().getAnnotations()).asList().contains(nullable());
+  }
+
+  @Test
+  public void testInheritedBuilderGetterRemainsNullable() throws NoSuchMethodException {
+    StringThingWithBuilder instance = StringThingWithBuilder.builder().setThing(null).build();
+    Method getter = instance.getClass().getDeclaredMethod("thing");
+    assertThat(getter.getAnnotatedReturnType().getAnnotations()).asList().contains(nullable());
+  }
+
+  interface GenericListParent<T> {
+    List<@Nullable T> things();
+  }
+
+  @AutoValue
+  abstract static class StringList implements GenericListParent<String> {}
+
+  // We'd like AutoValue to realize that the effective type of `things()` in `StringList` is
+  // `List<@Nullable String>`. Unfortunately it doesn't, because Types.asMemberOf deletes
+  // annotations. The workaround that we have to restore them only works for top-level annotations,
+  // like the `@Nullable T` in `GenericParent`, but not like the `List<@Nullable T>` here.
+  @Test
+  public void testInheritedListGetterRemainsNullable() throws NoSuchMethodException {
+    StringList instance = new AutoValue_AutoValueJava8Test_StringList(ImmutableList.of());
+    Method getter = instance.getClass().getDeclaredMethod("things");
+    AnnotatedParameterizedType returnType =
+        (AnnotatedParameterizedType) getter.getAnnotatedReturnType();
+    assertThat(returnType.getAnnotatedActualTypeArguments()[0].getAnnotations())
+        .asList()
+        .doesNotContain(nullable());
+    // This should be .contains(nullable()).
   }
 
   public static class Nested {}
@@ -448,7 +548,7 @@ public class AutoValueJava8Test {
     assertThat(e).hasMessageThat().contains("notNullable");
 
     NullablePropertyWithBuilder.Builder builder = NullablePropertyWithBuilder.builder();
-    assertThat(builder.nullable()).isEmpty();
+    Truth.assertThat(builder.nullable()).isEmpty();
   }
 
   @AutoValue
@@ -476,12 +576,12 @@ public class AutoValueJava8Test {
     OptionalPropertyWithNullableBuilder instance1 =
         OptionalPropertyWithNullableBuilder.builder().notOptional("hello").build();
     assertThat(instance1.notOptional()).isEqualTo("hello");
-    assertThat(instance1.optional()).isEmpty();
+    Truth.assertThat(instance1.optional()).isEmpty();
 
     OptionalPropertyWithNullableBuilder instance2 =
         OptionalPropertyWithNullableBuilder.builder().notOptional("hello").optional(null).build();
     assertThat(instance2.notOptional()).isEqualTo("hello");
-    assertThat(instance2.optional()).isEmpty();
+    Truth.assertThat(instance2.optional()).isEmpty();
     assertThat(instance1).isEqualTo(instance2);
 
     OptionalPropertyWithNullableBuilder instance3 =
@@ -490,7 +590,7 @@ public class AutoValueJava8Test {
             .optional("world")
             .build();
     assertThat(instance3.notOptional()).isEqualTo("hello");
-    assertThat(instance3.optional()).hasValue("world");
+    Truth.assertThat(instance3.optional()).hasValue("world");
 
     assertThrows(
         IllegalStateException.class, () -> OptionalPropertyWithNullableBuilder.builder().build());
@@ -518,19 +618,19 @@ public class AutoValueJava8Test {
   public void testNullableOptional() {
     NullableOptionalPropertyWithNullableBuilder instance1 =
         NullableOptionalPropertyWithNullableBuilder.builder().build();
-    assertThat(instance1.optional()).isNull();
+    Truth.assertThat(instance1.optional()).isNull();
 
     NullableOptionalPropertyWithNullableBuilder instance2 =
         NullableOptionalPropertyWithNullableBuilder.builder().optional(null).build();
-    assertThat(instance2.optional()).isEmpty();
+    Truth.assertThat(instance2.optional()).isEmpty();
 
     NullableOptionalPropertyWithNullableBuilder instance3 =
         NullableOptionalPropertyWithNullableBuilder.builder().optional("haruspex").build();
-    assertThat(instance3.optional()).hasValue("haruspex");
+    Truth.assertThat(instance3.optional()).hasValue("haruspex");
 
     NullableOptionalPropertyWithNullableBuilder.Builder builder =
         NullableOptionalPropertyWithNullableBuilder.builder();
-    assertThat(builder.optional()).isNull();
+    Truth.assertThat(builder.optional()).isNull();
   }
 
   @AutoValue
@@ -831,20 +931,20 @@ public class AutoValueJava8Test {
   @Test
   public void testOptionalOptional_empty() {
     OptionalOptional empty = OptionalOptional.builder().build();
-    assertThat(empty.maybeJustMaybe()).isEmpty();
+    Truth.assertThat(empty.maybeJustMaybe()).isEmpty();
   }
 
   @Test
   public void testOptionalOptional_ofEmpty() {
     OptionalOptional ofEmpty = OptionalOptional.builder().maybeJustMaybe(Optional.empty()).build();
-    assertThat(ofEmpty.maybeJustMaybe()).hasValue(Optional.empty());
+    Truth.assertThat(ofEmpty.maybeJustMaybe()).hasValue(Optional.empty());
   }
 
   @Test
   public void testOptionalOptional_ofSomething() {
     OptionalOptional ofSomething =
         OptionalOptional.builder().maybeJustMaybe(Optional.of("foo")).build();
-    assertThat(ofSomething.maybeJustMaybe()).hasValue(Optional.of("foo"));
+    Truth.assertThat(ofSomething.maybeJustMaybe()).hasValue(Optional.of("foo"));
   }
 
   @AutoValue
@@ -867,7 +967,7 @@ public class AutoValueJava8Test {
   public void testOptionalExtends() {
     Predicate<Number> predicate = n -> n.toString().equals("0");
     OptionalExtends t = OptionalExtends.builder().setPredicate(predicate).build();
-    assertThat(t.predicate()).hasValue(predicate);
+    Truth.assertThat(t.predicate()).hasValue(predicate);
   }
 
   @AutoValue
@@ -1046,5 +1146,64 @@ public class AutoValueJava8Test {
         NullableVariableBound.create(null, null);
     assertThat(x.nullOne()).isNull();
     assertThat(x.nullTwo()).isNull();
+  }
+
+  @AutoValue
+  public abstract static class NotNullableVariableBound<T> {
+    public abstract T t();
+
+    public abstract @Nullable T nullableT();
+
+    public abstract String string();
+
+    public static <T> Builder<T> builder() {
+      return new AutoValue_AutoValueJava8Test_NotNullableVariableBound.Builder<>();
+    }
+
+    @AutoValue.Builder
+    public abstract static class Builder<T> {
+      public abstract Builder<T> setT(T t);
+
+      public abstract Builder<T> setNullableT(@Nullable T nullableT);
+
+      public abstract Builder<T> setString(String string);
+
+      public abstract NotNullableVariableBound<T> build();
+    }
+  }
+
+  @Test
+  public void typeParameterBuilderFieldsAreNullable() throws ReflectiveOperationException {
+    assertThrows(NullPointerException.class, () -> NotNullableVariableBound.builder().setT(null));
+
+    // Even though neither t() nor string() has a @Nullable return type, the corresponding builder
+    // fields should be @Nullable. This test depends on the knowledge that for a property `t`, we
+    // will have a field also called `t`.
+    // For `nullableT`, the @Nullable in question should be the same as the one on the return type
+    // of nullableT(). For `t`, it is a @Nullable that AutoValue found somewhere, either there or
+    // possibly on the parameter of the inherited Object.equals method.
+    Field builderT = NotNullableVariableBound.builder().getClass().getDeclaredField("t");
+    assertThat(builderT.getAnnotatedType().getAnnotations())
+        .asList()
+        .containsAnyIn(nullables(AutoValue_AutoValueJava8Test_NotNullableVariableBound.class));
+    Field builderNullableT =
+        NotNullableVariableBound.builder().getClass().getDeclaredField("nullableT");
+    assertThat(builderNullableT.getAnnotatedType().getAnnotations()).asList().contains(nullable());
+
+    // Meanwhile the AutoValue class itself should have @Nullable on the private field, the getter
+    // method, and the constructor parameter for nullableT. This @Nullable should be the same as
+    // the one on the return type of nullableT().
+    Class<?> autoValueClass = AutoValue_AutoValueJava8Test_NotNullableVariableBound.class;
+    Field nullableTField = autoValueClass.getDeclaredField("nullableT");
+    assertThat(nullableTField.getAnnotatedType().getAnnotations()).asList().contains(nullable());
+    Method nullableTMethod = autoValueClass.getMethod("nullableT");
+    assertThat(nullableTMethod.getAnnotatedReturnType().getAnnotations())
+        .asList()
+        .contains(nullable());
+    Constructor<?> autoValueConstructor =
+        autoValueClass.getDeclaredConstructor(Object.class, Object.class, String.class);
+    assertThat(autoValueConstructor.getAnnotatedParameterTypes()[1].getAnnotations())
+        .asList()
+        .contains(nullable());
   }
 }

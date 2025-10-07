@@ -35,25 +35,31 @@ import javax.lang.model.type.TypeMirror;
 
 class ExtensionContext implements AutoValueExtension.Context {
 
+  private final AutoValueProcessor autoValueProcessor;
   private final ProcessingEnvironment processingEnvironment;
   private final TypeElement autoValueClass;
   private final ImmutableMap<String, ExecutableElement> properties;
-  private final ImmutableMap<String, TypeMirror> propertyTypes;
+  private final ImmutableMap<String, AnnotatedTypeMirror> propertyTypes;
   private final ImmutableSet<ExecutableElement> abstractMethods;
+  private final ImmutableSet<ExecutableElement> builderAbstractMethods;
   private Optional<BuilderContext> builderContext = Optional.empty();
 
   ExtensionContext(
+      AutoValueProcessor autoValueProcessor,
       ProcessingEnvironment processingEnvironment,
       TypeElement autoValueClass,
       ImmutableMap<String, ExecutableElement> properties,
-      ImmutableMap<ExecutableElement, TypeMirror> propertyMethodsAndTypes,
-      ImmutableSet<ExecutableElement> abstractMethods) {
+      ImmutableMap<ExecutableElement, AnnotatedTypeMirror> propertyMethodsAndTypes,
+      ImmutableSet<ExecutableElement> abstractMethods,
+      ImmutableSet<ExecutableElement> builderAbstractMethods) {
+    this.autoValueProcessor = autoValueProcessor;
     this.processingEnvironment = processingEnvironment;
     this.autoValueClass = autoValueClass;
     this.properties = properties;
     this.propertyTypes =
         ImmutableMap.copyOf(Maps.transformValues(properties, propertyMethodsAndTypes::get));
     this.abstractMethods = abstractMethods;
+    this.builderAbstractMethods = builderAbstractMethods;
   }
 
   void setBuilderContext(BuilderContext builderContext) {
@@ -87,12 +93,17 @@ class ExtensionContext implements AutoValueExtension.Context {
 
   @Override
   public Map<String, TypeMirror> propertyTypes() {
-    return propertyTypes;
+    return Maps.transformValues(propertyTypes, AnnotatedTypeMirror::getType);
   }
 
   @Override
   public Set<ExecutableElement> abstractMethods() {
     return abstractMethods;
+  }
+
+  @Override
+  public Set<ExecutableElement> builderAbstractMethods() {
+    return builderAbstractMethods;
   }
 
   @Override
@@ -123,14 +134,13 @@ class ExtensionContext implements AutoValueExtension.Context {
             .add(ClassNames.KOTLIN_METADATA_NAME)
             .build();
 
-    return AutoValueishProcessor.annotationsToCopy(
-        autoValueClass, classToCopyFrom, excludedAnnotations, processingEnvironment.getTypeUtils());
+    return autoValueProcessor.annotationsToCopy(
+        autoValueClass, classToCopyFrom, excludedAnnotations);
   }
 
   @Override
   public List<AnnotationMirror> methodAnnotationsToCopy(ExecutableElement method) {
-    return AutoValueishProcessor.propertyMethodAnnotations(
-        autoValueClass, method, processingEnvironment.getTypeUtils());
+    return autoValueProcessor.propertyMethodAnnotations(autoValueClass, method);
   }
 
   @Override
