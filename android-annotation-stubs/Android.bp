@@ -9,6 +9,7 @@ package {
 
 java_library_host {
     name: "auto_android_annotation_stubs",
+    defaults: ["error_prone_dependency_defaults"],
     srcs: ["src/**/*.java"],
     visibility: ["//visibility:public"],
 }
