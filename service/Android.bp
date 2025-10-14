@@ -9,6 +9,7 @@ package {
 
 java_library {
     name: "auto_service_annotations",
+    defaults: ["error_prone_dependency_defaults"],
     host_supported: true,
     srcs: ["annotations/src/main/java/**/*.java"],
     sdk_version: "core_current",
@@ -21,17 +22,19 @@ java_library {
 
 java_library_host {
     name: "libauto_service_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     srcs: ["processor/src/main/java/**/*.java"],
     visibility: ["//visibility:public"],
     static_libs: [
-         "auto_common",
-         "auto_service_annotations",
-         "guava",
+        "auto_common",
+        "auto_service_annotations",
+        "guava",
     ],
 }
 
 java_plugin {
     name: "auto_service_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     static_libs: ["libauto_service_plugin"],
     processor_class: "com.google.auto.service.processor.AutoServiceProcessor",
     visibility: ["//visibility:public"],
