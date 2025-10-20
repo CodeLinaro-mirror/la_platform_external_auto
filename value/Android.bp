@@ -15,6 +15,7 @@ filegroup {
 
 java_library_host {
     name: "libauto_value_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     srcs: ["src/main/java/com/google/auto/value/processor/**/*.java"],
     java_resources: [":auto_value_plugin_resources"],
     static_libs: [
@@ -22,7 +23,6 @@ java_library_host {
         "auto_service_annotations",
         "error_prone_annotations",
 
-        "asm-9.6",
         "auto_common",
         "auto_value_extension",
         "escapevelocity",
@@ -30,12 +30,14 @@ java_library_host {
         "javapoet",
         "kotlin-stdlib",
         "kotlinx_metadata_jvm",
+        "ow2-asm",
     ],
     visibility: ["//visibility:public"],
 }
 
 java_library_host {
     name: "auto_value_extension",
+    defaults: ["error_prone_dependency_defaults"],
     srcs: ["src/main/java/com/google/auto/value/extension/*.java"],
     libs: [
         "guava",
@@ -45,6 +47,7 @@ java_library_host {
 
 java_library {
     name: "auto_value_annotations",
+    defaults: ["error_prone_dependency_defaults"],
     host_supported: true,
     srcs: ["src/main/java/com/google/auto/value/*.java"],
     sdk_version: "core_current",
@@ -60,6 +63,7 @@ java_library {
         "com.android.adservices",
         "com.android.tethering",
         "com.android.uwb",
+        "com.android.mediaprovider",
     ],
     target: {
         windows: {
@@ -70,6 +74,7 @@ java_library {
 
 java_plugin {
     name: "auto_value_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     static_libs: ["libauto_value_plugin"],
     processor_class: "com.google.auto.value.processor.AutoValueProcessor",
     visibility: ["//visibility:public"],
@@ -77,6 +82,7 @@ java_plugin {
 
 java_plugin {
     name: "auto_value_builder_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     static_libs: ["libauto_value_plugin"],
     processor_class: "com.google.auto.value.processor.AutoBuilderProcessor",
     visibility: ["//visibility:public"],
@@ -84,6 +90,7 @@ java_plugin {
 
 java_plugin {
     name: "auto_oneof_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     static_libs: [
         "libauto_value_plugin",
 
@@ -118,6 +125,7 @@ java_plugin {
 
 java_library {
     name: "auto_value_memoized_extension_annotations",
+    defaults: ["error_prone_dependency_defaults"],
     host_supported: true,
     srcs: ["src/main/java/com/google/auto/value/extension/memoized/*.java"],
     sdk_version: "core_current",
@@ -126,6 +134,7 @@ java_library {
 
 java_plugin {
     name: "auto_value_memoized_extension_plugin",
+    defaults: ["error_prone_dependency_defaults"],
     srcs: ["src/main/java/com/google/auto/value/extension/memoized/processor/*.java"],
     static_libs: [
         "auto_android_annotation_stubs",
