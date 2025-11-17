@@ -22,7 +22,6 @@ java_library_host {
         "auto_service_annotations",
         "error_prone_annotations",
 
-        "asm-9.6",
         "auto_common",
         "auto_value_extension",
         "escapevelocity",
@@ -30,6 +29,7 @@ java_library_host {
         "javapoet",
         "kotlin-stdlib",
         "kotlinx_metadata_jvm",
+        "ow2-asm",
     ],
     visibility: ["//visibility:public"],
 }
